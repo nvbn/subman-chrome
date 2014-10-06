@@ -49,7 +49,7 @@
                   :data (<! ch))
     (recur ch)))
 
-(when js/chrome
+(when (aget js/window "chrome")
   (reset! chrome js/chrome)
   (condp = (.. js/document -location -host)
     "eztv.it" (init! "epinfo")

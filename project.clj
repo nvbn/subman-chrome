@@ -9,7 +9,8 @@
                            [com.cognitect/transit-cljs "0.8.188"]
                            [cljs-http "0.1.16"]
                            [swiss-arrows "1.0.0"]]
-            :plugins [[lein-cljsbuild "1.0.3"]]
+            :plugins [[lein-cljsbuild "1.0.3"]
+                      [com.cemerick/clojurescript.test "0.3.1"]]
             :cljsbuild {:builds [{:source-paths ["src/background/"]
                                   :compiler {:output-to "resources/background.js"
                                              :optimizations :whitespace
@@ -17,4 +18,10 @@
                                  {:source-paths ["src/content/"]
                                   :compiler {:output-to "resources/content.js"
                                              :optimizations :whitespace
-                                             :pretty-print false}}]})
+                                             :pretty-print false}}
+                                 {:source-paths ["src/" "test/"]
+                                  :compiler {:output-to "target/cljs-test.js"
+                                             :optimizations :whitespace
+                                             :pretty-print false}}]
+                        :test-commands {"test" ["phantomjs" :runner
+                                                "target/cljs-test.js"]}})

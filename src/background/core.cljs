@@ -100,6 +100,6 @@
   (reset! extension (.-extension @chrome))
   (reset! tabs (.-tabs @chrome)))
 
-(when js/chrome
+(when (aget js/window "chrome")
   (inject!)
   (.. @extension -onMessage (addListener message-listener)))
