@@ -10,31 +10,39 @@
   [& params]
   (.. js/chrome -extension (sendMessage (clj->js (apply hash-map params)))))
 
-(defn get-eztv-titles
-  "Get titles for episodeds on extv."
-  []
+(defn get-titles
+  "Get titles for episodeds."
+  [cls]
   (-<> js/document
-       (.querySelectorAll "a.epinfo")
+       (.querySelectorAll (str "a." cls))
        (map #(.-innerHTML %) <>)))
 
 (defn with-menu?
   "Should context menu be visible for this el?"
-  [el]
-  (.. el -classList (contains "epinfo")))
+  [el cls]
+  (.. el -classList (contains cls)))
 
-(defn on-eztv-hover
-  "Bind event when episode on eztv hovered."
-  [callback]
+(defn on-hover
+  "Bind event when episode on hovered."
+  [cls callback]
   (doseq [el (.querySelectorAll js/document "a")]
     (.addEventListener el "mouseenter"
-                       #(callback (with-menu? el) (.-innerHTML el)))
+                       #(callback (with-menu? el cls) (.-innerHTML el)))
     (.addEventListener el "mouseleave" #(callback false ""))))
 
 (def host (.. js/document -location -host))
 
-(when (= "eztv.it" host)
+(defn init!
+  "Init extension for current page."
+  [link-cls]
   (send-message :request :load-subtitles
-                :titles (get-eztv-titles))
-  (on-eztv-hover #(send-message :request :update-context-menu
-                                :data {:with-menu? %1
-                                       :title %2})))
+                :titles (get-titles link-cls))
+  (on-hover link-cls #(send-message :request :update-context-menu
+                                    :data {:with-menu? %1
+                                           :title %2})))
+
+(js/console.log (.. js/document -location -host))
+
+(condp = (.. js/document -location -host)
+  "eztv.it" (init! "epinfo")
+  "thepiratebay.se" (init! "detLink"))

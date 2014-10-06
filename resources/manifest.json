@@ -2,13 +2,13 @@
     "name": "subman.io for chrome",
     "description": "Search subtitles faster",
     "version": "0.1",
-    "permissions": ["contextMenus", "tabs", "*://eztv.it/*", "*://subman.io/*"],
+    "permissions": ["contextMenus", "tabs", "*://eztv.it/*", "*://subman.io/*", "*://thepiratebay.se/*"],
     "background": {
         "scripts": ["background.js"]
     },
     "content_scripts": [
         {
-            "matches": ["*://eztv.it/*"],
+            "matches": ["*://eztv.it/*", "*://thepiratebay.se/*"],
             "js": ["content.js"]
         }
     ],
