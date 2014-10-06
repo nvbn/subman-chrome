@@ -11,11 +11,11 @@
                            [swiss-arrows "1.0.0"]]
             :plugins [[lein-cljsbuild "1.0.3"]
                       [com.cemerick/clojurescript.test "0.3.1"]]
-            :cljsbuild {:builds [{:source-paths ["src/background/"]
+            :cljsbuild {:builds [{:source-paths ["src/subman_chrome/background/"]
                                   :compiler {:output-to "resources/background.js"
                                              :optimizations :whitespace
                                              :pretty-print false}}
-                                 {:source-paths ["src/content/"]
+                                 {:source-paths ["src/subman_chrome/content/"]
                                   :compiler {:output-to "resources/content.js"
                                              :optimizations :whitespace
                                              :pretty-print false}}
