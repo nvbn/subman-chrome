@@ -1,6 +1,8 @@
 (ns subman-chrome.content.core
   (:require-macros [swiss.arrows :refer [-<>]]))
 
+(def chrome (atom nil))
+
 (extend-type js/NodeList
   ISeqable
   (-seq [array] (array-seq array 0)))
@@ -8,7 +10,7 @@
 (defn send-message
   "Sends message to background."
   [& params]
-  (.. js/chrome -extension (sendMessage (clj->js (apply hash-map params)))))
+  (.. @chrome -extension (sendMessage (clj->js (apply hash-map params)))))
 
 (defn get-titles
   "Get titles for episodeds."
@@ -30,8 +32,6 @@
                        #(callback (with-menu? el cls) (.-innerHTML el)))
     (.addEventListener el "mouseleave" #(callback false ""))))
 
-(def host (.. js/document -location -host))
-
 (defn init!
   "Init extension for current page."
   [link-cls]
@@ -41,9 +41,9 @@
                                     :data {:with-menu? %1
                                            :title %2})))
 
-(js/console.log (.. js/document -location -host))
-
-(condp = (.. js/document -location -host)
-  "eztv.it" (init! "epinfo")
-  "thepiratebay.se" (init! "detLink")
-  nil)
+(when js/chrome
+  (reset! chrome js/chrome)
+  (condp = (.. js/document -location -host)
+    "eztv.it" (init! "epinfo")
+    "thepiratebay.se" (init! "detLink")
+    nil))

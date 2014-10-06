@@ -4,15 +4,18 @@
             [cljs.core.async :refer [<!]]
             [cljs-http.client :as http]))
 
+(def chrome (atom nil))
+
 ; shortcuts for chrome api:
-(def context-menus (.-contextMenus js/chrome))
-(def extension (.-extension js/chrome))
-(def tabs (.-tabs js/chrome))
+(def context-menus (atom nil))
+(def extension (atom nil))
+(def tabs (atom nil))
+
 (defn create-contex-menu
   [& params]
   (->> (apply hash-map params)
        clj->js
-       (.create context-menus)))
+       (.create @context-menus)))
 
 (def cache (atom {}))
 
@@ -56,7 +59,7 @@
 (defn on-clicked
   "Open new tab with subtitle."
   [{:keys [url]}]
-  (.create tabs #js {:url url}))
+  (.create @tabs #js {:url url}))
 
 (defn get-menu-title
   "Get title for main context menu entry."
@@ -69,7 +72,7 @@
 (defn update-context-menu
   "Update context menu when episode hovered."
   [{:keys [with-menu? title]}]
-  (.removeAll context-menus)
+  (.removeAll @context-menus)
   (when with-menu?
     (let [items (seq (@cache title))]
       (create-contex-menu :contexts [:all]
@@ -89,4 +92,14 @@
       :load-subtitles (load-subtitles (:titles msg))
       :update-context-menu (update-context-menu (:data msg)))))
 
-(.. extension -onMessage (addListener message-listener))
+(defn inject!
+  "Injects dependencies for usage in chrome."
+  []
+  (reset! chrome js/chrome)
+  (reset! context-menus (.-contextMenus @chrome))
+  (reset! extension (.-extension @chrome))
+  (reset! tabs (.-tabs @chrome)))
+
+(when js/chrome
+  (inject!)
+  (.. @extension -onMessage (addListener message-listener)))
