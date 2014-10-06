@@ -1,0 +1,16 @@
+{
+    "name": "subman.io for chrome",
+    "description": "Search subtitles faster",
+    "version": "0.1",
+    "permissions": ["contextMenus", "tabs", "*://eztv.it/*", "*://subman.io/*"],
+    "background": {
+        "scripts": ["background.js"]
+    },
+    "content_scripts": [
+        {
+            "matches": ["*://eztv.it/*"],
+            "js": ["content.js"]
+        }
+    ],
+    "manifest_version": 2
+}
