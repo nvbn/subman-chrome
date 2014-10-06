@@ -1,5 +1,5 @@
 (ns subman-chrome.content.core-test
-  (:require-macros [cemerick.cljs.test :refer [deftest is use-fixtures done]]
+  (:require-macros [cemerick.cljs.test :refer [deftest is use-fixtures]]
                    [cljs.core.async.macros :refer [go]])
   (:require [cemerick.cljs.test]
             [cljs.core.async :refer [<!]]

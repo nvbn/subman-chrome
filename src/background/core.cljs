@@ -5,13 +5,16 @@
             [cljs-http.client :as http]))
 
 (def chrome (atom nil))
+(def http-get (atom nil))
 
 ; shortcuts for chrome api:
 (def context-menus (atom nil))
 (def extension (atom nil))
 (def tabs (atom nil))
 
-(defn create-contex-menu
+(def result-limit 5)
+
+(defn create-context-menu
   [& params]
   (->> (apply hash-map params)
        clj->js
@@ -31,28 +34,28 @@
 (defn get-menu-item-title
   "Get title for single menu item."
   [{:keys [show season episode source]}]
-  (let [season-episode (if (and season episode) (str "S" season "E" episode) "")
+  (let [season-episode (if (and season episode) (str " S" season "E" episode) "")
         source (sources source)]
-    (string/replace (str source ": " show " " season-episode)
+    (string/replace (str source ": " show season-episode)
                     #"(\t|\n|\r)" " ")))
 
-(defn menu-items-from-subtitles
+(defn menu-item-from-subtitle
   "Transforms subtitle to menu item."
   [{:keys [url] :as subtitle}]
   {:title (get-menu-item-title subtitle)
    :url url})
 
-(defn load-subtitles
+(defn load-subtitles!
   "Loads subtitles from server."
   [titles]
   (doseq [title titles]
     (go (swap! loading assoc title true)
         (->> (str "http://subman.io/api/search/?query=" title)
-             http/get
+             (@http-get)
              <!
              :body
-             (take 5)
-             (map menu-items-from-subtitles)
+             (take result-limit)
+             (map menu-item-from-subtitle)
              (swap! cache assoc title))
         (swap! loading assoc title false))))
 
@@ -75,26 +78,27 @@
   (.removeAll @context-menus)
   (when with-menu?
     (let [items (seq (@cache title))]
-      (create-contex-menu :contexts [:all]
-                          :id :subtitles-menu
-                          :title (get-menu-title items title))
+      (create-context-menu :contexts [:all]
+                           :id :subtitles-menu
+                           :title (get-menu-title items title))
       (doseq [item items]
-        (create-contex-menu :contexts [:all]
-                            :parentId :subtitles-menu
-                            :title (:title item)
-                            :onclick (partial on-clicked item))))))
+        (create-context-menu :contexts [:all]
+                             :parentId :subtitles-menu
+                             :title (:title item)
+                             :onclick (partial on-clicked item))))))
 
 (defn message-listener
   "Handle messages from content."
   [msg _ _]
   (let [msg (js->clj msg :keywordize-keys true)]
     (condp = (keyword (:request msg))
-      :load-subtitles (load-subtitles (:titles msg))
+      :load-subtitles (load-subtitles! (:titles msg))
       :update-context-menu (update-context-menu (:data msg)))))
 
 (defn inject!
-  "Injects dependencies for usage in chrome."
+  "Injects dependencies for using in chrome."
   []
+  (reset! http-get http/get)
   (reset! chrome js/chrome)
   (reset! context-menus (.-contextMenus @chrome))
   (reset! extension (.-extension @chrome))
