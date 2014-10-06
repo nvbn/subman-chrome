@@ -45,4 +45,5 @@
 
 (condp = (.. js/document -location -host)
   "eztv.it" (init! "epinfo")
-  "thepiratebay.se" (init! "detLink"))
+  "thepiratebay.se" (init! "detLink")
+  nil)

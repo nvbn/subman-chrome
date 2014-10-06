@@ -1,7 +1,8 @@
 (ns subman-chrome.background.core
   (:require-macros [cljs.core.async.macros :refer [go]])
-  (:require [cljs-http.client :as http]
-            [cljs.core.async :refer [<!]]))
+  (:require [clojure.string :as string]
+            [cljs.core.async :refer [<!]]
+            [cljs-http.client :as http]))
 
 ; shortcuts for chrome api:
 (def context-menus (.-contextMenus js/chrome))
@@ -15,6 +16,8 @@
 
 (def cache (atom {}))
 
+(def loading (atom {}))
+
 (def sources {0 "Addicted"
               1 "Podnapisi"
               2 "OpenSubtitles"
@@ -22,30 +25,46 @@
               4 "Notabenoid"
               5 "UKsubtitles"})
 
+(defn get-menu-item-title
+  "Get title for single menu item."
+  [{:keys [show season episode source]}]
+  (let [season-episode (if (and season episode) (str "S" season "E" episode) "")
+        source (sources source)]
+    (string/replace (str source ": " show " " season-episode)
+                    #"(\t|\n|\r)" " ")))
+
 (defn menu-items-from-subtitles
   "Transforms subtitle to menu item."
-  [{:keys [show season episode source url]}]
-  {:title (str (sources source)
-               ": " show " "
-               (if (and season episode) (str "S" season "E" episode) ""))
+  [{:keys [url] :as subtitle}]
+  {:title (get-menu-item-title subtitle)
    :url url})
 
 (defn load-subtitles
   "Loads subtitles from server."
   [titles]
   (doseq [title titles]
-    (go (->> (str "http://subman.io/api/search/?query=" title)
+    (go (swap! loading assoc title true)
+        (->> (str "http://subman.io/api/search/?query=" title)
              http/get
              <!
              :body
              (take 5)
              (map menu-items-from-subtitles)
-             (swap! cache assoc title)))))
+             (swap! cache assoc title))
+        (swap! loading assoc title false))))
 
 (defn on-clicked
   "Open new tab with subtitle."
   [{:keys [url]}]
   (.create tabs #js {:url url}))
+
+(defn get-menu-title
+  "Get title for main context menu entry."
+  [items title]
+  (cond
+    items "Subtitles"
+    (@loading title) "Loading subtitles..."
+    :else "No subtitles found"))
 
 (defn update-context-menu
   "Update context menu when episode hovered."
@@ -55,7 +74,7 @@
     (let [items (seq (@cache title))]
       (create-contex-menu :contexts [:all]
                           :id :subtitles-menu
-                          :title (if items "Subtitles" "No subtitles found"))
+                          :title (get-menu-title items title))
       (doseq [item items]
         (create-contex-menu :contexts [:all]
                             :parentId :subtitles-menu
