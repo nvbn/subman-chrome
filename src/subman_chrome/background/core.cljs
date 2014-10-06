@@ -78,11 +78,11 @@
   (.removeAll @context-menus)
   (when with-menu?
     (let [items (seq (@cache title))]
-      (create-context-menu :contexts [:all]
+      (create-context-menu :contexts [:link]
                            :id :subtitles-menu
                            :title (get-menu-title items title))
       (doseq [item items]
-        (create-context-menu :contexts [:all]
+        (create-context-menu :contexts [:link]
                              :parentId :subtitles-menu
                              :title (:title item)
                              :onclick (partial on-clicked item))))))
