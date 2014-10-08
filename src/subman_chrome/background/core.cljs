@@ -4,7 +4,7 @@
   (:require [clojure.string :as string]
             [cljs.core.async :refer [<!]]
             [cljs-http.client :as http]
-            [clj-di.core :refer [register!]]
+            [clj-di.core :refer [register! get-dep]]
             [subman-chrome.shared.chrome :as c]))
 
 (def result-limit 5)
@@ -15,10 +15,6 @@
     (->> (apply hash-map params)
          clj->js
          (.create context-menus))))
-
-(def cache (atom {}))
-
-(def loading (atom {}))
 
 (def sources {0 "Addicted"
               1 "Podnapisi"
@@ -44,7 +40,9 @@
 (defn load-subtitles!
   "Loads subtitles from server."
   [titles]
-  (let-deps [http-get :http-get]
+  (let-deps [http-get :http-get
+             cache :cache
+             loading :loading]
     (doseq [title titles]
       (go (swap! loading assoc title true)
           (->> (str "http://subman.io/api/search/?query=" title)
@@ -67,13 +65,14 @@
   [items title]
   (cond
     items "Subtitles"
-    (@loading title) "Loading subtitles..."
+    (@(get-dep :loading) title) "Loading subtitles..."
     :else "No subtitles found"))
 
 (defn update-context-menu
   "Update context menu when episode hovered."
   [{:keys [with-menu? title]}]
-  (let-deps [context-menus :chrome-context-menus]
+  (let-deps [context-menus :chrome-context-menus
+             cache :cache]
     (.removeAll context-menus)
     (when with-menu?
       (let [items (seq (@cache title))]
@@ -97,5 +96,7 @@
 (when (c/available?)
   (c/inject!)
   (register! :http-get http/get)
+  (register! :cache (atom {}))
+  (register! :loading (atom {}))
   (let-deps [extension :chrome-extension]
     (.. extension -onMessage (addListener message-listener))))

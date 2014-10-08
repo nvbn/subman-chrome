@@ -4,10 +4,11 @@
                    [clj-di.test :refer [with-fresh-dependencies]])
   (:require [cemerick.cljs.test]
             [cljs.core.async :refer [>! <! chan timeout]]
-            [clj-di.core :refer [register!]]
+            [clj-di.core :refer [register! get-dep dependencies]]
             [subman-chrome.background.core :as b]))
 
-(use-fixtures :each (fn [f] (with-fresh-dependencies (f))))
+(use-fixtures :each
+              (fn [f] (with-fresh-dependencies(f))))
 
 (deftype ContextMenuMock [result-atom remove-all-atom]
   Object
@@ -47,20 +48,24 @@
 (deftest ^:async test-load-subtitles!
          (register! :http-get (fn [url]
                                 (is (= url "http://subman.io/api/search/?query=title"))
-                                (is (= @b/loading {"title" true}))
+                                (is (= @(get-dep :loading) {"title" true}))
                                 (let [ch (chan)]
                                   (go (>! ch {:body (for [i (range 10)]
                                                       {:show (str "show-" i)
                                                        :source 1
                                                        :url (str "url-" i)})}))
                                   ch)))
+         (register! :cache (atom {}))
+         (register! :loading (atom {}))
          (go (let [result (for [i (range b/result-limit)]
                             {:title (str "Podnapisi: show-" i)
-                             :url (str "url-" i)})]
+                             :url (str "url-" i)})
+                   cache (get-dep :cache)
+                   loading (get-dep :loading)]
                (b/load-subtitles! ["title"])
                (<! (timeout 0))                             ; wait for `load-subtitles!`
-               (is (= @b/cache {"title" result}))
-               (is (= @b/loading {"title" false}))
+               (is (= @cache {"title" result}))
+               (is (= @loading {"title" false}))
                (done))))
 
 (deftest test-on-clicked
@@ -71,20 +76,23 @@
                   [{:url "test-url"}]))))
 
 (deftest test-get-menu-title
+         (register! :loading (atom {}))
          (is (= (b/get-menu-title [:item] "title")
                 "Subtitles"))
          (is (= (b/get-menu-title nil "title")
                 "No subtitles found"))
-         (swap! b/loading assoc "title" true)
+         (swap! (get-dep :loading) assoc "title" true)
          (is (= (b/get-menu-title nil "title")
                 "Loading subtitles...")))
 
 (deftest test-update-context-menu
+         (register! :cache (atom {}))
          (let [menu (atom [])
-               deleted (atom 0)]
+               deleted (atom 0)
+               cache (get-dep :cache)]
            (register! :chrome-context-menus (ContextMenuMock. menu deleted))
-           (swap! b/cache assoc "title" [{:title "menu item"
-                                          :url "test-url"}])
+           (swap! cache assoc "title" [{:title "menu item"
+                                        :url "test-url"}])
            (b/update-context-menu {:with-menu? false
                                    :title "title"})
            (is (= 1 @deleted))
