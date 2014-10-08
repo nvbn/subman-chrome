@@ -1,24 +1,21 @@
 (ns subman-chrome.background.core
-  (:require-macros [cljs.core.async.macros :refer [go]])
+  (:require-macros [cljs.core.async.macros :refer [go]]
+                   [clj-di.core :refer [let-deps]])
   (:require [clojure.string :as string]
             [cljs.core.async :refer [<!]]
-            [cljs-http.client :as http]))
+            [cljs-http.client :as http]
+            [subman-chrome.shared.chrome :as c]))
 
-(def chrome (atom nil))
 (def http-get (atom nil))
-
-; shortcuts for chrome api:
-(def context-menus (atom nil))
-(def extension (atom nil))
-(def tabs (atom nil))
 
 (def result-limit 5)
 
 (defn create-context-menu
   [& params]
-  (->> (apply hash-map params)
-       clj->js
-       (.create @context-menus)))
+  (let-deps [context-menus :chrome-context-menus]
+    (->> (apply hash-map params)
+         clj->js
+         (.create context-menus))))
 
 (def cache (atom {}))
 
@@ -62,7 +59,8 @@
 (defn on-clicked
   "Open new tab with subtitle."
   [{:keys [url]}]
-  (.create @tabs #js {:url url}))
+  (let-deps [tabs :chrome-tabs]
+    (.create tabs #js {:url url})))
 
 (defn get-menu-title
   "Get title for main context menu entry."
@@ -75,17 +73,18 @@
 (defn update-context-menu
   "Update context menu when episode hovered."
   [{:keys [with-menu? title]}]
-  (.removeAll @context-menus)
-  (when with-menu?
-    (let [items (seq (@cache title))]
-      (create-context-menu :contexts [:link]
-                           :id :subtitles-menu
-                           :title (get-menu-title items title))
-      (doseq [item items]
+  (let-deps [context-menus :chrome-context-menus]
+    (.removeAll context-menus)
+    (when with-menu?
+      (let [items (seq (@cache title))]
         (create-context-menu :contexts [:link]
-                             :parentId :subtitles-menu
-                             :title (:title item)
-                             :onclick (partial on-clicked item))))))
+                             :id :subtitles-menu
+                             :title (get-menu-title items title))
+        (doseq [item items]
+          (create-context-menu :contexts [:link]
+                               :parentId :subtitles-menu
+                               :title (:title item)
+                               :onclick (partial on-clicked item)))))))
 
 (defn message-listener
   "Handle messages from content."
@@ -98,12 +97,10 @@
 (defn inject!
   "Injects dependencies for using in chrome."
   []
-  (reset! http-get http/get)
-  (reset! chrome js/chrome)
-  (reset! context-menus (.-contextMenus @chrome))
-  (reset! extension (.-extension @chrome))
-  (reset! tabs (.-tabs @chrome)))
+  (reset! http-get http/get))
 
-(when (aget js/window "chrome")
+(when (c/available?)
+  (c/inject!)
   (inject!)
-  (.. @extension -onMessage (addListener message-listener)))
+  (let-deps [extension :chrome-extension]
+    (.. extension -onMessage (addListener message-listener))))

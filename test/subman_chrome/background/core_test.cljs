@@ -1,17 +1,13 @@
 (ns subman-chrome.background.core-test
   (:require-macros [cemerick.cljs.test :refer [deftest is use-fixtures done]]
-                   [cljs.core.async.macros :refer [go]])
+                   [cljs.core.async.macros :refer [go]]
+                   [clj-di.test :refer [with-fresh-dependencies]])
   (:require [cemerick.cljs.test]
             [cljs.core.async :refer [>! <! chan timeout]]
+            [clj-di.core :refer [register!]]
             [subman-chrome.background.core :as b]))
 
-(defn reset-atoms!
-  []
-  (reset! b/cache {})
-  (reset! b/loading {})
-  (reset! b/http-get nil))
-
-(use-fixtures :each (fn [f] (reset-atoms!) (f) (reset-atoms!)))
+(use-fixtures :each (fn [f] (with-fresh-dependencies (f))))
 
 (deftype ContextMenuMock [result-atom remove-all-atom]
   Object
@@ -24,7 +20,7 @@
 
 (deftest test-create-context-menu
          (let [result (atom [])]
-           (reset! b/context-menus (ContextMenuMock. result (atom 0)))
+           (register! :chrome-context-menus (ContextMenuMock. result (atom 0)))
            (b/create-context-menu :contexts [:all]
                                   :title "Test Title")
            (is (= (js->clj @result :keywordize-keys true)
@@ -69,7 +65,7 @@
 
 (deftest test-on-clicked
          (let [result (atom [])]
-           (reset! b/tabs (TabsMock. result))
+           (register! :chrome-tabs (TabsMock. result))
            (b/on-clicked {:url "test-url"})
            (is (= (js->clj @result :keywordize-keys true)
                   [{:url "test-url"}]))))
@@ -86,7 +82,7 @@
 (deftest test-update-context-menu
          (let [menu (atom [])
                deleted (atom 0)]
-           (reset! b/context-menus (ContextMenuMock. menu deleted))
+           (register! :chrome-context-menus (ContextMenuMock. menu deleted))
            (swap! b/cache assoc "title" [{:title "menu item"
                                           :url "test-url"}])
            (b/update-context-menu {:with-menu? false

@@ -1,27 +1,30 @@
 (ns subman-chrome.content.core-test
   (:require-macros [cemerick.cljs.test :refer [deftest is use-fixtures]]
-                   [cljs.core.async.macros :refer [go]])
+                   [cljs.core.async.macros :refer [go]]
+                   [clj-di.test :refer [with-fresh-dependencies]])
   (:require [cemerick.cljs.test]
             [cljs.core.async :refer [<!]]
+            [clj-di.core :refer [register!]]
             [subman-chrome.content.core :as c]))
 
 (deftype ExtensionMock [result-atom]
   Object
   (sendMessage [_ msg] (reset! result-atom msg)))
 
-(deftype ChromeMock [extension]
-  Object)
-
 (defn clear!
   "Clear page."
   []
   (set! (.-innerHTML (.-body js/document))) "")
 
-(use-fixtures :each (fn [f] (clear!) (f) (clear!)))
+(use-fixtures :each (fn [f]
+                      (with-fresh-dependencies
+                        (clear!)
+                        (f)
+                        (clear!))))
 
 (deftest test-send-message
          (let [result (atom nil)]
-           (reset! c/chrome (ChromeMock. (ExtensionMock. result)))
+           (register! :chrome-extension (ExtensionMock. result))
            (c/send-message :request :test-request
                            :data {:id 1
                                   :name "test"})

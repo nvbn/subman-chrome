@@ -1,9 +1,9 @@
 (ns subman-chrome.content.core
   (:require-macros [cljs.core.async.macros :refer [go-loop go]]
-                   [swiss.arrows :refer [-<>]])
-  (:require [cljs.core.async :refer [<! >! chan]]))
-
-(def chrome (atom nil))
+                   [swiss.arrows :refer [-<>]]
+                   [clj-di.core :refer [let-deps]])
+  (:require [cljs.core.async :refer [<! >! chan]]
+            [subman-chrome.shared.chrome :as c]))
 
 (extend-type js/NodeList
   ISeqable
@@ -12,7 +12,8 @@
 (defn send-message
   "Sends message to background."
   [& params]
-  (.. @chrome -extension (sendMessage (clj->js (apply hash-map params)))))
+  (let-deps [extension :chrome-extension]
+    (.sendMessage extension (clj->js (apply hash-map params)))))
 
 (defn get-titles
   "Get titles for episodeds."
@@ -49,8 +50,8 @@
                   :data (<! ch))
     (recur ch)))
 
-(when (aget js/window "chrome")
-  (reset! chrome js/chrome)
+(when (c/available?)
+  (c/inject!)
   (condp = (.. js/document -location -host)
     "eztv.it" (init! "epinfo")
     "thepiratebay.se" (init! "detLink")

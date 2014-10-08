@@ -8,14 +8,17 @@
                            [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                            [com.cognitect/transit-cljs "0.8.188"]
                            [cljs-http "0.1.16"]
-                           [swiss-arrows "1.0.0"]]
+                           [swiss-arrows "1.0.0"]
+                           [clj-di "0.1.1"]]
             :plugins [[lein-cljsbuild "1.0.3"]
                       [com.cemerick/clojurescript.test "0.3.1"]]
-            :cljsbuild {:builds [{:source-paths ["src/subman_chrome/background/"]
+            :cljsbuild {:builds [{:source-paths ["src/subman_chrome/background/"
+                                                 "src/subman_chrome/shared"]
                                   :compiler {:output-to "resources/background.js"
                                              :optimizations :whitespace
                                              :pretty-print false}}
-                                 {:source-paths ["src/subman_chrome/content/"]
+                                 {:source-paths ["src/subman_chrome/content/"
+                                                 "src/subman_chrome/shared"]
                                   :compiler {:output-to "resources/content.js"
                                              :optimizations :whitespace
                                              :pretty-print false}}
