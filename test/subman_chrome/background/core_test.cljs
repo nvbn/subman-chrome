@@ -45,15 +45,15 @@
               :url "test-url"}))
 
 (deftest ^:async test-load-subtitles!
-         (reset! b/http-get (fn [url]
-                              (is (= url "http://subman.io/api/search/?query=title"))
-                              (is (= @b/loading {"title" true}))
-                              (let [ch (chan)]
-                                (go (>! ch {:body (for [i (range 10)]
-                                                    {:show (str "show-" i)
-                                                     :source 1
-                                                     :url (str "url-" i)})}))
-                                ch)))
+         (register! :http-get (fn [url]
+                                (is (= url "http://subman.io/api/search/?query=title"))
+                                (is (= @b/loading {"title" true}))
+                                (let [ch (chan)]
+                                  (go (>! ch {:body (for [i (range 10)]
+                                                      {:show (str "show-" i)
+                                                       :source 1
+                                                       :url (str "url-" i)})}))
+                                  ch)))
          (go (let [result (for [i (range b/result-limit)]
                             {:title (str "Podnapisi: show-" i)
                              :url (str "url-" i)})]

@@ -4,9 +4,8 @@
   (:require [clojure.string :as string]
             [cljs.core.async :refer [<!]]
             [cljs-http.client :as http]
+            [clj-di.core :refer [register!]]
             [subman-chrome.shared.chrome :as c]))
-
-(def http-get (atom nil))
 
 (def result-limit 5)
 
@@ -45,16 +44,17 @@
 (defn load-subtitles!
   "Loads subtitles from server."
   [titles]
-  (doseq [title titles]
-    (go (swap! loading assoc title true)
-        (->> (str "http://subman.io/api/search/?query=" title)
-             (@http-get)
-             <!
-             :body
-             (take result-limit)
-             (map menu-item-from-subtitle)
-             (swap! cache assoc title))
-        (swap! loading assoc title false))))
+  (let-deps [http-get :http-get]
+    (doseq [title titles]
+      (go (swap! loading assoc title true)
+          (->> (str "http://subman.io/api/search/?query=" title)
+               http-get
+               <!
+               :body
+               (take result-limit)
+               (map menu-item-from-subtitle)
+               (swap! cache assoc title))
+          (swap! loading assoc title false)))))
 
 (defn on-clicked
   "Open new tab with subtitle."
@@ -94,13 +94,8 @@
       :load-subtitles (load-subtitles! (:titles msg))
       :update-context-menu (update-context-menu (:data msg)))))
 
-(defn inject!
-  "Injects dependencies for using in chrome."
-  []
-  (reset! http-get http/get))
-
 (when (c/available?)
   (c/inject!)
-  (inject!)
+  (register! :http-get http/get)
   (let-deps [extension :chrome-extension]
     (.. extension -onMessage (addListener message-listener))))
