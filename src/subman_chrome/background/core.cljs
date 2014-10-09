@@ -92,6 +92,6 @@
       (register! :http-get http/get
                  :cache (atom {})
                  :loading (atom {})
-                 :sources (<! (http/get "http://subman.io/api/list-sources/")))
+                 :sources (:body (<! (http/get "http://subman.io/api/list-sources/"))))
       (let-deps [extension :chrome-extension]
         (.. extension -onMessage (addListener message-listener)))))
