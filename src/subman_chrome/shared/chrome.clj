@@ -1,7 +1,7 @@
 (ns subman-chrome.shared.chrome)
 
 (defmacro defattr
-  [name getter]
-  `(def ~name
+  [attr getter]
+  `(def ~attr
      (when (subman-chrome.shared.chrome/available?)
-       (~getter js/chrome))))
+       (aget js/chrome (name '~getter)))))

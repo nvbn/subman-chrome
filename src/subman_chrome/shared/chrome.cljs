@@ -7,11 +7,11 @@
   []
   (aget js/window "chrome"))
 
-(defattr extension .-extension)
+(defattr extension extension)
 
-(defattr context-menus .-contextMenus)
+(defattr context-menus contextMenus)
 
-(defattr tabs .-tabs)
+(defattr tabs tabs)
 
 (defn inject!
   "Inject real chrome into dependencies"
