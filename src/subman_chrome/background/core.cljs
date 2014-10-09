@@ -5,10 +5,9 @@
             [cljs.core.async :refer [<!]]
             [cljs-http.client :as http]
             [clj-di.core :refer [register! get-dep]]
+            [subman-chrome.shared.const :as const]
             [subman-chrome.shared.chrome :as c]
             [subman-chrome.shared.utils :as u]))
-
-(def result-limit 5)
 
 (defn create-context-menu
   [& params]
@@ -43,11 +42,11 @@
              loading :loading]
     (doseq [title titles]
       (go (swap! loading assoc title true)
-          (->> (str "http://subman.io/api/search/?query=" title)
+          (->> (str const/search-url title)
                http-get
                <!
                :body
-               (take result-limit)
+               (take const/result-limit)
                (map menu-item-from-subtitle)
                (swap! cache assoc title))
           (swap! loading assoc title false)))))
@@ -96,6 +95,6 @@
       (register! :http-get http/get
                  :cache (atom {})
                  :loading (atom {})
-                 :sources (:body (<! (http/get "http://subman.io/api/list-sources/"))))
+                 :sources (:body (<! (http/get const/sources-url))))
       (let-deps [extension :chrome-extension]
         (.. extension -onMessage (addListener message-listener)))))

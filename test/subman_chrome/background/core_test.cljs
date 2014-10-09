@@ -5,6 +5,7 @@
   (:require [cemerick.cljs.test]
             [cljs.core.async :refer [>! <! chan timeout]]
             [clj-di.core :refer [register! get-dep dependencies]]
+            [subman-chrome.shared.const :as const]
             [subman-chrome.background.core :as b]))
 
 (use-fixtures :each
@@ -69,7 +70,7 @@
                     :cache (atom {})
                     :loading (atom {}))
          (register-default-sources!)
-         (go (let [result (for [i (range b/result-limit)]
+         (go (let [result (for [i (range const/result-limit)]
                             {:title (str "Podnapisi: show-" i)
                              :url (str "url-" i)})
                    cache (get-dep :cache)
