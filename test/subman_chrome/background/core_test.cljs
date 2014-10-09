@@ -8,7 +8,16 @@
             [subman-chrome.background.core :as b]))
 
 (use-fixtures :each
-              (fn [f] (with-fresh-dependencies(f))))
+              (fn [f] (with-fresh-dependencies (f))))
+
+(defn register-default-sources!
+  []
+  (register! :sources {0 "Addicted"
+                       1 "Podnapisi"
+                       2 "OpenSubtitles"
+                       3 "Subscene"
+                       4 "Notabenoid"
+                       5 "UKsubtitles"}))
 
 (deftype ContextMenuMock [result-atom remove-all-atom]
   Object
@@ -29,6 +38,7 @@
                     :title "Test Title"}]))))
 
 (deftest test-get-menu-item-title
+         (register-default-sources!)
          (is (= (b/get-menu-item-title {:show "American Dad"
                                         :season 1
                                         :episode 12
@@ -39,6 +49,7 @@
                 "Podnapisi: American Dad")))
 
 (deftest test-menu-itme-from-subtitle
+         (register-default-sources!)
          (is (= (b/get-menu-item-title {:show "American Dad"
                                         :source 1
                                         :url "test-url"}))
@@ -54,9 +65,10 @@
                                                       {:show (str "show-" i)
                                                        :source 1
                                                        :url (str "url-" i)})}))
-                                  ch)))
-         (register! :cache (atom {}))
-         (register! :loading (atom {}))
+                                  ch))
+                    :cache (atom {})
+                    :loading (atom {}))
+         (register-default-sources!)
          (go (let [result (for [i (range b/result-limit)]
                             {:title (str "Podnapisi: show-" i)
                              :url (str "url-" i)})

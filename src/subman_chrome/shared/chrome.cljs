@@ -16,6 +16,6 @@
 (defn inject!
   "Inject real chrome into dependencies"
   []
-  (register! :chrome-extension extension)
-  (register! :chrome-context-menus context-menus)
-  (register! :chrome-tabs tabs))
+  (register! :chrome-extension extension
+             :chrome-context-menus context-menus
+             :chrome-tabs tabs))

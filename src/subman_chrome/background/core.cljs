@@ -16,17 +16,11 @@
          clj->js
          (.create context-menus))))
 
-(def sources {0 "Addicted"
-              1 "Podnapisi"
-              2 "OpenSubtitles"
-              3 "Subscene"
-              4 "Notabenoid"
-              5 "UKsubtitles"})
-
 (defn get-menu-item-title
   "Get title for single menu item."
   [{:keys [show season episode source]}]
   (let [season-episode (if (and season episode) (str " S" season "E" episode) "")
+        sources (get-dep :sources)
         source (sources source)]
     (string/replace (str source ": " show season-episode)
                     #"(\t|\n|\r)" " ")))
@@ -94,9 +88,10 @@
       :update-context-menu (update-context-menu (:data msg)))))
 
 (when (c/available?)
-  (c/inject!)
-  (register! :http-get http/get)
-  (register! :cache (atom {}))
-  (register! :loading (atom {}))
-  (let-deps [extension :chrome-extension]
-    (.. extension -onMessage (addListener message-listener))))
+  (go (c/inject!)
+      (register! :http-get http/get
+                 :cache (atom {})
+                 :loading (atom {})
+                 :sources (<! (http/get "http://subman.io/api/list-sources/")))
+      (let-deps [extension :chrome-extension]
+        (.. extension -onMessage (addListener message-listener)))))
