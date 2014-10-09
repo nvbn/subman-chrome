@@ -5,7 +5,8 @@
             [cljs.core.async :refer [<!]]
             [cljs-http.client :as http]
             [clj-di.core :refer [register! get-dep]]
-            [subman-chrome.shared.chrome :as c]))
+            [subman-chrome.shared.chrome :as c]
+            [subman-chrome.shared.utils :as u]))
 
 (def result-limit 5)
 
@@ -19,7 +20,10 @@
 (defn get-menu-item-title
   "Get title for single menu item."
   [{:keys [show season episode source]}]
-  (let [season-episode (if (and season episode) (str " S" season "E" episode) "")
+  (let [season-episode (if (some u/is-filled? [season episode])
+                         (str " S" (u/add-0-if-need season)
+                              "E" (u/add-0-if-need episode))
+                         "")
         sources (get-dep :sources)
         source (sources source)]
     (string/replace (str source ": " show season-episode)

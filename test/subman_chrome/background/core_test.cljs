@@ -43,7 +43,7 @@
                                         :season 1
                                         :episode 12
                                         :source 0})
-                "Addicted: American Dad S1E12"))
+                "Addicted: American Dad S01E12"))
          (is (= (b/get-menu-item-title {:show "American Dad"
                                         :source 1})
                 "Podnapisi: American Dad")))
