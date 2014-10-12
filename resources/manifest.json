@@ -2,7 +2,7 @@
     "name": "subman.io for chrome",
     "description": "Search subtitles faster",
     "version": "0.1",
-    "permissions": ["contextMenus", "tabs", "*://eztv.it/*", "*://subman.io/*", "*://thepiratebay.se/*"],
+    "permissions": ["contextMenus", "tabs", "*://subman.io/*"],
     "background": {
         "scripts": ["background.js"]
     },
@@ -13,9 +13,15 @@
         }
     ],
     "icons": {
-      "16": "icon_16_16.png",
-      "48": "icon_48_48.png",
-      "128": "icon_128_128.png"
+        "16": "icon_16_16.png",
+        "48": "icon_48_48.png",
+        "128": "icon_128_128.png"
+    },
+    "page_action": {
+        "default_icon": {
+            "48": "icon_48_48.png"
+        },
+        "default_title": "Right click on link to episode for seeing subtitles."
     },
     "manifest_version": 2
 }
