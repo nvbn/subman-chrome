@@ -13,9 +13,12 @@
 
 (defattr tabs tabs)
 
+(defattr page-action pageAction)
+
 (defn inject!
   "Inject real chrome into dependencies"
   []
   (register! :chrome-extension extension
              :chrome-context-menus context-menus
-             :chrome-tabs tabs))
+             :chrome-tabs tabs
+             :chrome-page-action page-action))

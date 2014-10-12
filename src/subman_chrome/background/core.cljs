@@ -82,12 +82,29 @@
                                :title (:title item)
                                :onclick (partial on-clicked item)))))))
 
+(defn with-icon
+  "Show loading icon and then show normal icon."
+  [tab ch]
+  (go (doto (get-dep :chrome-page-action)
+        (.show (.-id tab))
+        (.setIcon #js {:path "loading_48_48.png"
+                       :tabId (.-id tab)})
+        (.setTitle #js {:title "Loading..."
+                        :tabId (.-id tab)}))
+      (<! ch)
+      (doto (get-dep :chrome-page-action)
+        (.setIcon #js {:path "icon_48_48.png"
+                       :tabId (.-id tab)})
+        (.setTitle #js {:title "Right click on link to episode for seeing subtitles."
+                        :tabId (.-id tab)}))))
+
 (defn message-listener
   "Handle messages from content."
-  [msg _ _]
+  [msg sender _]
   (let [msg (js->clj msg :keywordize-keys true)]
     (condp = (keyword (:request msg))
-      :load-subtitles (load-subtitles! (:titles msg))
+      :load-subtitles (with-icon (.-tab sender)
+                                 (load-subtitles! (:titles msg)))
       :update-context-menu (update-context-menu (:data msg)))))
 
 (when (c/available?)
