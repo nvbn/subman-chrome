@@ -45,17 +45,17 @@
                                         :season 1
                                         :episode 12
                                         :source 0})
-                "Addicted: American Dad S01E12"))
+                "American Dad S01E12 (Addicted)"))
          (is (= (b/get-menu-item-title {:show "American Dad"
                                         :source 1})
-                "Podnapisi: American Dad")))
+                "American Dad (Podnapisi)")))
 
 (deftest test-menu-itme-from-subtitle
          (register-default-sources!)
          (is (= (b/get-menu-item-title {:show "American Dad"
                                         :source 1
                                         :url "test-url"}))
-             {:title "Podnapisi: American Dad"
+             {:title "American Dad (Podnapisi)"
               :url "test-url"}))
 
 (deftest ^:async test-load-subtitles!
@@ -71,7 +71,7 @@
                                                                        :url (str "url-" i)})}}))
                                          ch))]
                (let [result (for [i (range const/result-limit)]
-                              {:title (str "Podnapisi: show-" i)
+                              {:title (str "show-" i " (Podnapisi)")
                                :url (str "url-" i)})
                      cache (get-dep :cache)
                      loading (get-dep :loading)]

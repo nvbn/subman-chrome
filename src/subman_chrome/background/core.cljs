@@ -25,7 +25,7 @@
                          "")
         sources (get-dep :sources)
         source (sources source)]
-    (string/replace (str source ": " show season-episode)
+    (string/replace (str show season-episode " (" source ")")
                     #"(\t|\n|\r)" " ")))
 
 (defn menu-item-from-subtitle
@@ -89,7 +89,7 @@
         (.show (.-id tab))
         (.setIcon #js {:path "loading_48_48.png"
                        :tabId (.-id tab)})
-        (.setTitle #js {:title "Loading..."
+        (.setTitle #js {:title "Loading subtitles..."
                         :tabId (.-id tab)}))
       (<! ch)
       (doto (get-dep :chrome-page-action)
