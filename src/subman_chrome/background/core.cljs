@@ -37,19 +37,19 @@
 (defn load-subtitles!
   "Loads subtitles from server."
   [titles]
-  (let-deps [http-get :http-get
-             cache :cache
-             loading :loading]
-    (doseq [title titles]
-      (go (swap! loading assoc title true)
-          (->> (str const/search-url title)
-               http-get
-               <!
-               :body
-               (take const/result-limit)
-               (map menu-item-from-subtitle)
-               (swap! cache assoc title))
-          (swap! loading assoc title false)))))
+  (go (let-deps [cache :cache
+                 loading :loading]
+        (doseq [title titles] (swap! loading assoc title true))
+        (let [result (->> (http/post const/search-url
+                                     {:transit-params {:queries titles
+                                                       :limit const/result-limit}})
+                          <!
+                          :body)]
+          (doseq [[title value] result]
+            (swap! loading assoc title false)
+            (when (seq value)
+              (swap! cache assoc title
+                     (map menu-item-from-subtitle value))))))))
 
 (defn on-clicked
   "Open new tab with subtitle."
@@ -92,8 +92,7 @@
 
 (when (c/available?)
   (go (c/inject!)
-      (register! :http-get http/get
-                 :cache (atom {})
+      (register! :cache (atom {})
                  :loading (atom {})
                  :sources (:body (<! (http/get const/sources-url))))
       (let-deps [extension :chrome-extension]

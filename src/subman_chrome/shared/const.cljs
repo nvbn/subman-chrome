@@ -4,6 +4,6 @@
 
 (def subman-url "http://subman.io/")
 
-(def search-url (str subman-url "api/search/?query="))
+(def search-url (str subman-url "api/bulk-search/"))
 
 (def sources-url (str subman-url "api/list-sources/"))

@@ -5,6 +5,7 @@
   (:require [cemerick.cljs.test]
             [cljs.core.async :refer [>! <! chan timeout]]
             [clj-di.core :refer [register! get-dep dependencies]]
+            [cljs-http.client :as http]
             [subman-chrome.shared.const :as const]
             [subman-chrome.background.core :as b]))
 
@@ -58,28 +59,27 @@
               :url "test-url"}))
 
 (deftest ^:async test-load-subtitles!
-         (register! :http-get (fn [url]
-                                (is (= url "http://subman.io/api/search/?query=title"))
-                                (is (= @(get-dep :loading) {"title" true}))
-                                (let [ch (chan)]
-                                  (go (>! ch {:body (for [i (range 10)]
-                                                      {:show (str "show-" i)
-                                                       :source 1
-                                                       :url (str "url-" i)})}))
-                                  ch))
-                    :cache (atom {})
+         (register! :cache (atom {})
                     :loading (atom {}))
          (register-default-sources!)
-         (go (let [result (for [i (range const/result-limit)]
-                            {:title (str "Podnapisi: show-" i)
-                             :url (str "url-" i)})
-                   cache (get-dep :cache)
-                   loading (get-dep :loading)]
-               (b/load-subtitles! ["title"])
-               (<! (timeout 0))                             ; wait for `load-subtitles!`
-               (is (= @cache {"title" result}))
-               (is (= @loading {"title" false}))
-               (done))))
+         (go (with-redefs [http/post (fn [& _]
+                                       (is (= @(get-dep :loading) {"title" true}))
+                                       (let [ch (chan)]
+                                         (go (>! ch {:body {"title" (for [i (range 5)]
+                                                                      {:show (str "show-" i)
+                                                                       :source 1
+                                                                       :url (str "url-" i)})}}))
+                                         ch))]
+               (let [result (for [i (range const/result-limit)]
+                              {:title (str "Podnapisi: show-" i)
+                               :url (str "url-" i)})
+                     cache (get-dep :cache)
+                     loading (get-dep :loading)]
+                 (b/load-subtitles! ["title"])
+                 (<! (timeout 0))                           ; wait for `load-subtitles!`
+                 (is (= @cache {"title" result}))
+                 (is (= @loading {"title" false}))
+                 (done)))))
 
 (deftest test-on-clicked
          (let [result (atom [])]
