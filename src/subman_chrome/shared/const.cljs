@@ -9,3 +9,21 @@
 (def sources-url (str subman-url "api/list-sources/"))
 
 (def repeat-timeout 1000)
+
+(def options-sync-timeout 1000)
+
+(def all-sources "all")
+
+(def all-sources-id -1)
+
+(def default-lang "english")
+
+(def default-options {:language default-lang
+                      :source all-sources})
+
+(def default-sources {0 "addicted"
+                      1 "podnapisi"
+                      2 "opensubtitles"
+                      3 "subscene"
+                      4 "notabenoid"
+                      5 "uksubtitles"})
