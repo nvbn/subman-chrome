@@ -7,3 +7,5 @@
 (def search-url (str subman-url "api/bulk-search/"))
 
 (def sources-url (str subman-url "api/list-sources/"))
+
+(def repeat-timeout 1000)

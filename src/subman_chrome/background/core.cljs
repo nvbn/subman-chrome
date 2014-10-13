@@ -1,8 +1,8 @@
 (ns subman-chrome.background.core
-  (:require-macros [cljs.core.async.macros :refer [go]]
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]]
                    [clj-di.core :refer [let-deps]])
   (:require [clojure.string :as string]
-            [cljs.core.async :refer [<!]]
+            [cljs.core.async :refer [<! timeout]]
             [cljs-http.client :as http]
             [clj-di.core :refer [register! get-dep]]
             [subman-chrome.shared.const :as const]
@@ -107,10 +107,20 @@
                                  (load-subtitles! (:titles msg)))
       :update-context-menu (update-context-menu (:data msg)))))
 
+(defn get-sources
+  "Get sources and repeat on error."
+  []
+  (go-loop []
+    (let [response (<! (http/get const/sources-url))]
+      (if (= 200 (:status response))
+        (:body response)
+        (do (<! (timeout const/repeat-timeout))
+            (recur))))))
+
 (when (c/available?)
   (go (c/inject!)
       (register! :cache (atom {})
                  :loading (atom {})
-                 :sources (:body (<! (http/get const/sources-url))))
+                 :sources (<! (get-sources)))
       (let-deps [extension :chrome-extension]
         (.. extension -onMessage (addListener message-listener)))))
