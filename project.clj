@@ -9,7 +9,8 @@
                            [com.cognitect/transit-cljs "0.8.188"]
                            [cljs-http "0.1.16"]
                            [swiss-arrows "1.0.0"]
-                           [clj-di "0.1.3"]]
+                           [clj-di "0.1.3"]
+                           [alandipert/storage-atom "1.2.3"]]
             :plugins [[lein-cljsbuild "1.0.3"]
                       [com.cemerick/clojurescript.test "0.3.1"]]
             :cljsbuild {:builds [{:source-paths ["src/subman_chrome/background/"

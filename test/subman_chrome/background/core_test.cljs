@@ -7,6 +7,7 @@
             [clj-di.core :refer [register! get-dep dependencies]]
             [cljs-http.client :as http]
             [subman-chrome.shared.const :as const]
+            [subman-chrome.background.models :as m]
             [subman-chrome.background.core :as b]))
 
 (use-fixtures :each
@@ -60,16 +61,19 @@
 
 (deftest ^:async test-load-subtitles!
          (register! :cache (atom {})
-                    :loading (atom {}))
+                    :loading (atom {})
+                    :options (atom const/default-options))
          (register-default-sources!)
-         (go (with-redefs [http/post (fn [& _]
-                                       (is (= @(get-dep :loading) {"title" true}))
-                                       (let [ch (chan)]
-                                         (go (>! ch {:body {"title" (for [i (range 5)]
-                                                                      {:show (str "show-" i)
-                                                                       :source 1
-                                                                       :url (str "url-" i)})}}))
-                                         ch))]
+         (go (with-redefs [m/get-subtitles (fn [titles limit lang source]
+                                             (is (= @(get-dep :loading) {"title" true}))
+                                             (is (= titles ["title"]))
+                                             (is (= limit const/result-limit))
+                                             (is (= lang const/default-lang))
+                                             (is (= source const/all-sources-id))
+                                             (go {"title" (for [i (range 5)]
+                                                            {:show (str "show-" i)
+                                                             :source 1
+                                                             :url (str "url-" i)})}))]
                (let [result (for [i (range const/result-limit)]
                               {:title (str "show-" i " (Podnapisi)")
                                :url (str "url-" i)})
@@ -78,8 +82,8 @@
                  (b/load-subtitles! ["title"])
                  (<! (timeout 0))                           ; wait for `load-subtitles!`
                  (is (= @cache {"title" result}))
-                 (is (= @loading {"title" false}))
-                 (done)))))
+                 (is (= @loading {"title" false}))))
+             (done)))
 
 (deftest test-on-clicked
          (let [result (atom [])]

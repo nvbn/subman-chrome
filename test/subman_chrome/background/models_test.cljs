@@ -3,7 +3,7 @@
                    [cljs.core.async.macros :refer [go]])
   (:require [cemerick.cljs.test]
             [cljs-http.client :as http]
-            [cljs.core.async :refer [<!]]
+            [cljs.core.async :refer [<! timeout]]
             [subman-chrome.shared.const :as const]
             [subman-chrome.background.models :as m]))
 
@@ -21,8 +21,8 @@
                                                               :body {}}
                                                              (do (reset! flag true)
                                                                  {:status 400}))))]
-                          (is (= (<! (m/get-sources)) {}))
-                          (done))))))
+                          (is (= (<! (m/get-sources)) {}))))
+                      (done))))
 
 (deftest test-get-source-id
          (testing "when source = all"
@@ -32,6 +32,8 @@
                   (is (= (m/get-source-id const/default-sources "notabenoid")
                          4))))
 
+(def get-subtitles m/get-subtitles)  ; fix for strange error with `with-redefs` and async tests
+
 (deftest ^:async test-get-subtitles
          (go (with-redefs [http/post (fn [_ {:keys [transit-params]}]
                                        (go (is (= transit-params {:queries ["dads" "simpsons"]
@@ -39,8 +41,8 @@
                                                                   :lang const/default-lang
                                                                   :source const/all-sources-id}))
                                            {:body :subtitles}))]
-               (is (= :subtitles (<! (m/get-subtitles ["dads" "simpsons"]
+               (is (= :subtitles (<! (get-subtitles ["dads" "simpsons"]
                                                       const/result-limit
                                                       const/default-lang
-                                                      const/all-sources-id))))
-               (done))))
+                                                      const/all-sources-id)))))
+             (done)))

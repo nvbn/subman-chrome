@@ -3,11 +3,14 @@
                    [clj-di.core :refer [let-deps]])
   (:require [clojure.string :as string]
             [cljs.core.async :refer [<! timeout]]
+            [clojure.set :refer [map-invert]]
             [cljs-http.client :as http]
             [clj-di.core :refer [register! get-dep]]
+            [alandipert.storage-atom :refer [local-storage]]
             [subman-chrome.shared.const :as const]
             [subman-chrome.shared.chrome :as c]
-            [subman-chrome.shared.utils :as u]))
+            [subman-chrome.shared.utils :as u]
+            [subman-chrome.background.models :as m]))
 
 (defn create-context-menu
   [& params]
@@ -38,18 +41,19 @@
   "Loads subtitles from server."
   [titles]
   (go (let-deps [cache :cache
-                 loading :loading]
+                 loading :loading
+                 options :options
+                 sources :sources]
         (doseq [title titles] (swap! loading assoc title true))
-        (let [result (->> (http/post const/search-url
-                                     {:transit-params {:queries titles
-                                                       :limit const/result-limit}})
-                          <!
-                          :body)]
-          (doseq [[title value] result]
-            (swap! loading assoc title false)
-            (when (seq value)
-              (swap! cache assoc title
-                     (map menu-item-from-subtitle value))))))))
+        (doseq [[title value] (<! (m/get-subtitles titles
+                                                   const/result-limit
+                                                   (:language @options)
+                                                   (m/get-source-id sources
+                                                                    (:source @options))))]
+          (swap! loading assoc title false)
+          (when (seq value)
+            (swap! cache assoc title
+                   (map menu-item-from-subtitle value)))))))
 
 (defn on-clicked
   "Open new tab with subtitle."
@@ -98,6 +102,12 @@
         (.setTitle #js {:title "Right click on link to episode for seeing subtitles."
                         :tabId (.-id tab)}))))
 
+(defn update-options!
+  "Update options in local storage."
+  [options]
+  (let-deps [storage :options]
+    (reset! storage options)))
+
 (defn message-listener
   "Handle messages from content."
   [msg sender _]
@@ -105,22 +115,15 @@
     (condp = (keyword (:request msg))
       :load-subtitles (with-icon (.-tab sender)
                                  (load-subtitles! (:titles msg)))
-      :update-context-menu (update-context-menu (:data msg)))))
-
-(defn get-sources
-  "Get sources and repeat on error."
-  []
-  (go-loop []
-    (let [response (<! (http/get const/sources-url))]
-      (if (= 200 (:status response))
-        (:body response)
-        (do (<! (timeout const/repeat-timeout))
-            (recur))))))
+      :update-context-menu (update-context-menu (:data msg))
+      :update-options (update-options! (:options msg)))))
 
 (when (c/available?)
   (go (c/inject!)
       (register! :cache (atom {})
                  :loading (atom {})
-                 :sources (<! (get-sources)))
+                 :sources (<! (m/get-sources))
+                 :options (local-storage (atom const/default-options)
+                                         :options))
       (let-deps [extension :chrome-extension]
         (.. extension -onMessage (addListener message-listener)))))

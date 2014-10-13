@@ -2,7 +2,9 @@
   (:require-macros [cljs.core.async.macros :refer [go-loop go]]
                    [swiss.arrows :refer [-<>]]
                    [clj-di.core :refer [let-deps]])
-  (:require [cljs.core.async :refer [<! >! chan]]
+  (:require [cljs.core.async :refer [<! >! chan timeout]]
+            [alandipert.storage-atom :refer [local-storage]]
+            [subman-chrome.shared.const :as const]
             [subman-chrome.shared.chrome :as c]))
 
 (extend-type js/NodeList
@@ -50,9 +52,20 @@
                   :data (<! ch))
     (recur ch)))
 
+(defn update-options!
+  "Update options from subman.io local storage."
+  []
+  (go-loop []
+    (let [storage (local-storage (atom {}) :options)]  ; we can't watch to atom here
+      (send-message :request :update-options
+                    :options @storage)
+      (<! (timeout const/options-sync-timeout))
+      (recur))))
+
 (when (c/available?)
   (c/inject!)
   (condp = (.. js/document -location -host)
     "eztv.it" (init! "epinfo")
     "thepiratebay.se" (init! "detLink")
+    "subman.io" (update-options!)
     nil))
