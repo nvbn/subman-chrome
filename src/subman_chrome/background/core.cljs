@@ -4,9 +4,9 @@
   (:require [clojure.string :as string]
             [cljs.core.async :refer [<! timeout]]
             [clojure.set :refer [map-invert]]
-            [cljs-http.client :as http]
             [clj-di.core :refer [register! get-dep]]
             [alandipert.storage-atom :refer [local-storage]]
+            [subman-chrome.shared.services.http :refer [http-client-impl]]
             [subman-chrome.shared.const :as const]
             [subman-chrome.shared.chrome :as c]
             [subman-chrome.shared.utils :as u]
@@ -122,6 +122,7 @@
   (go (c/inject!)
       (register! :cache (atom {})
                  :loading (atom {})
+                 :http-client (http-client-impl.)
                  :sources (<! (m/get-sources))
                  :options (local-storage (atom const/default-options)
                                          :options))
