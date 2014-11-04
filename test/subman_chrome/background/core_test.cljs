@@ -7,6 +7,7 @@
             [clj-di.core :refer [register! get-dep dependencies]]
             [cljs-http.client :as http]
             [subman-chrome.shared.const :as const]
+            [subman-chrome.shared.services.chrome :as c]
             [subman-chrome.background.models :as m]
             [subman-chrome.background.core :as b]))
 
@@ -21,24 +22,6 @@
                        3 "Subscene"
                        4 "Notabenoid"
                        5 "UKsubtitles"}))
-
-(deftype ContextMenuMock [result-atom remove-all-atom]
-  Object
-  (create [_ menu] (swap! result-atom conj menu))
-  (removeAll [_] (swap! remove-all-atom inc)))
-
-(deftype TabsMock [create-atom]
-  Object
-  (create [_ data] (swap! create-atom conj data)))
-
-(deftest test-create-context-menu
-         (let [result (atom [])]
-           (register! :chrome-context-menus (ContextMenuMock. result (atom 0)))
-           (b/create-context-menu :contexts [:all]
-                                  :title "Test Title")
-           (is (= (js->clj @result :keywordize-keys true)
-                  [{:contexts ["all"]
-                    :title "Test Title"}]))))
 
 (deftest test-get-menu-item-title
          (register-default-sources!)
@@ -87,13 +70,6 @@
                (is (= @loading {"title" false})))
              (done)))
 
-(deftest test-on-clicked
-         (let [result (atom [])]
-           (register! :chrome-tabs (TabsMock. result))
-           (b/on-clicked {:url "test-url"})
-           (is (= (js->clj @result :keywordize-keys true)
-                  [{:url "test-url"}]))))
-
 (deftest test-get-menu-title
          (register! :loading (atom {}))
          (is (= (b/get-menu-title [:item] "title")
@@ -109,7 +85,9 @@
          (let [menu (atom [])
                deleted (atom 0)
                cache (get-dep :cache)]
-           (register! :chrome-context-menus (ContextMenuMock. menu deleted))
+           (register! :chrome (reify c/chrome
+                                (create-context-menu [_ params] (swap! menu conj params))
+                                (remove-context-menus [_] (swap! deleted inc))))
            (swap! cache assoc "title" [{:title "menu item"
                                         :url "test-url"}])
            (b/update-context-menu {:with-menu? false

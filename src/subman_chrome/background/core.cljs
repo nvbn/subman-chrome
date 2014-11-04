@@ -8,16 +8,9 @@
             [alandipert.storage-atom :refer [local-storage]]
             [subman-chrome.shared.services.http :refer [http-client-impl]]
             [subman-chrome.shared.const :as const]
-            [subman-chrome.shared.chrome :as c]
+            [subman-chrome.shared.services.chrome :as c]
             [subman-chrome.shared.utils :as u]
             [subman-chrome.background.models :as m]))
-
-(defn create-context-menu
-  [& params]
-  (let-deps [context-menus :chrome-context-menus]
-    (->> (apply hash-map params)
-         clj->js
-         (.create context-menus))))
 
 (defn get-menu-item-title
   "Get title for single menu item."
@@ -54,12 +47,6 @@
             (swap! cache assoc title
                    (map menu-item-from-subtitle value)))))))
 
-(defn on-clicked
-  "Open new tab with subtitle."
-  [{:keys [url]}]
-  (let-deps [tabs :chrome-tabs]
-    (.create tabs #js {:url url})))
-
 (defn get-menu-title
   "Get title for main context menu entry."
   [items title]
@@ -71,35 +58,32 @@
 (defn update-context-menu
   "Update context menu when episode hovered."
   [{:keys [with-menu? title]}]
-  (let-deps [context-menus :chrome-context-menus
-             cache :cache]
-    (.removeAll context-menus)
+  (let-deps [cache :cache]
+    (c/remove-context-menus*)
     (when with-menu?
       (let [items (seq (@cache title))]
-        (create-context-menu :contexts [:link]
-                             :id :subtitles-menu
-                             :title (get-menu-title items title))
+        (c/create-context-menu* {:contexts [:link]
+                                 :id :subtitles-menu
+                                 :title (get-menu-title items title)})
         (doseq [item items]
-          (create-context-menu :contexts [:link]
-                               :parentId :subtitles-menu
-                               :title (:title item)
-                               :onclick (partial on-clicked item)))))))
+          (c/create-context-menu* {:contexts [:link]
+                                   :parentId :subtitles-menu
+                                   :title (:title item)
+                                   :onclick (partial c/create-tab* (:url item))}))))))
 
 (defn with-icon
   "Show loading icon and then show normal icon."
   [tab ch]
-  (go (doto (get-dep :chrome-page-action)
-        (.show (.-id tab))
-        (.setIcon #js {:path "loading_48_48.png"
-                       :tabId (.-id tab)})
-        (.setTitle #js {:title "Loading subtitles..."
-                        :tabId (.-id tab)}))
+  (go (c/show-page-action* tab)
+      (c/set-page-icon* {:path "loading_48_48.png"
+                         :tabId (.-id tab)})
+      (c/set-page-title* {:title "Loading subtitles..."
+                          :tabId (.-id tab)})
       (<! ch)
-      (doto (get-dep :chrome-page-action)
-        (.setIcon #js {:path "icon_48_48.png"
-                       :tabId (.-id tab)})
-        (.setTitle #js {:title "Right click on link to episode for seeing subtitles."
-                        :tabId (.-id tab)}))))
+      (c/set-page-icon* {:path "icon_48_48.png"
+                         :tabId (.-id tab)})
+      (c/set-page-title* {:title "Right click on link to episode for seeing subtitles."
+                          :tabId (.-id tab)})))
 
 (defn update-options!
   "Update options in local storage."
@@ -123,8 +107,7 @@
              :http-client (http-client-impl.)
              :models (m/models-impl.)
              :options (local-storage (atom const/default-options)
-                                     :options))
-  (c/inject!)
+                                     :options)
+             :chrome (c/chrome-impl.))
   (go (register! :sources (<! (m/get-sources*)))
-      (let-deps [extension :chrome-extension]
-        (.. extension -onMessage (addListener message-listener)))))
+      (c/on-message* message-listener)))

@@ -22,17 +22,6 @@
                         (f)
                         (clear!))))
 
-(deftest test-send-message
-         (let [result (atom nil)]
-           (register! :chrome-extension (ExtensionMock. result))
-           (c/send-message :request :test-request
-                           :data {:id 1
-                                  :name "test"})
-           (is (= (js->clj @result :keywordize-keys true)
-                  {:request "test-request"
-                   :data {:id 1
-                          :name "test"}}))))
-
 (deftest test-get-titles
          (js/document.write "<a class='epinfo'>American Dad</a>
                              <a class='epinfo'>Family Guy</a>
