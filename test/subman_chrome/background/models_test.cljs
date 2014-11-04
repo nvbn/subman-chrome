@@ -13,8 +13,8 @@
                                    (get [_ _] (go {:status 200
                                                    :body {0 "Opensubtitles"
                                                           1 "UKSubtitles"}}))))
-         (go (is (= (<! (m/get-sources)) {0 "opensubtitles"
-                                          1 "uksubtitles"}))
+         (go (is (= (<! (m/-get-sources)) {0 "opensubtitles"
+                                           1 "uksubtitles"}))
              (done)))
 
 (deftest ^:async test-get-sources-when-not-200
@@ -25,15 +25,16 @@
                                                        :body {}}
                                                       (do (reset! flag true)
                                                           {:status 400}))))))
-           (go (is (= (<! (m/get-sources)) {}))
+           (go (is (= (<! (m/-get-sources)) {}))
                (done))))
 
 (deftest test-get-source-id
+         (register! :sources const/default-sources )
          (testing "when source = all"
-                  (is (= (m/get-source-id const/default-sources const/all-sources)
+                  (is (= (m/-get-source-id const/all-sources)
                          const/all-sources-id)))
          (testing "when ordinary source"
-                  (is (= (m/get-source-id const/default-sources "notabenoid")
+                  (is (= (m/-get-source-id "notabenoid")
                          4))))
 
 (deftest ^:async test-get-subtitles
@@ -44,8 +45,8 @@
                                                                 :lang const/default-lang
                                                                 :source const/all-sources-id}))
                                          {:body :subtitles}))))
-         (go (is (= :subtitles (<! (m/get-subtitles ["dads" "simpsons"]
-                                                    const/result-limit
-                                                    const/default-lang
-                                                    const/all-sources-id))))
+         (go (is (= :subtitles (<! (m/-get-subtitles ["dads" "simpsons"]
+                                                     const/result-limit
+                                                     const/default-lang
+                                                     const/all-sources-id))))
              (done)))

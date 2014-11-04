@@ -45,11 +45,10 @@
                  options :options
                  sources :sources]
         (doseq [title titles] (swap! loading assoc title true))
-        (doseq [[title value] (<! (m/get-subtitles titles
-                                                   const/result-limit
-                                                   (:language @options)
-                                                   (m/get-source-id sources
-                                                                    (:source @options))))]
+        (doseq [[title value] (<! (m/get-subtitles* titles
+                                                    const/result-limit
+                                                    (:language @options)
+                                                    (m/get-source-id* (:source @options))))]
           (swap! loading assoc title false)
           (when (seq value)
             (swap! cache assoc title
@@ -123,7 +122,8 @@
       (register! :cache (atom {})
                  :loading (atom {})
                  :http-client (http-client-impl.)
-                 :sources (<! (m/get-sources))
+                 :models (m/models-impl.)
+                 :sources (<! (m/get-sources*))
                  :options (local-storage (atom const/default-options)
                                          :options))
       (let-deps [extension :chrome-extension]
