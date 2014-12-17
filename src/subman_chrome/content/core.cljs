@@ -62,5 +62,7 @@
   (condp = (.. js/document -location -host)
     "eztv.it" (init! "epinfo")
     "thepiratebay.se" (init! "detLink")
+    "thepiratebay.cr" (init! "detLink")
+    "kickass.so" (init! "cellMainLink")
     "subman.io" (update-options!)
     nil))
